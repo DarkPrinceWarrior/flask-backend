@@ -51,7 +51,7 @@ class UsersList(Resource):
         age = args["age"]
 
         user = UserModel(login=login,
-                         email=email,
+                         email=email.lower(),
                          gender=gender,
                          age=age,
                          role_id=role_id)
@@ -79,16 +79,14 @@ class User(Resource):
         new_email = email
         new_gender = args["gender"]
         new_age = args["age"]
-        print(email,new_login,new_email,new_gender,new_age)
+        print(email,new_login,args["current_email"],new_gender,new_age)
         editedUser = session.query(UserModel).filter_by(email=args["current_email"]).one()
-        session.close()
-
         editedUser.id = editedUser.id
         editedUser.login = new_login
-        editedUser.email = new_email
+        editedUser.email = new_email.lower()
         editedUser.gender = new_gender
         editedUser.age = new_age
-
+        editedUser.role_id = editedUser.role_id
         session.add(editedUser)
         session.commit()
         session.close()
