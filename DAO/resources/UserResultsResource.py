@@ -1,12 +1,8 @@
 from flask import jsonify
 from flask_restful import reqparse, Resource
-from sqlalchemy.orm import sessionmaker
 
-from DAO.Models.User_results import UsersResultsModel
-from DAO.database_setup import engine
-
-DBSession = sessionmaker(bind=engine)
-session = DBSession()
+from DAO.Models.database_setup import db_session
+from DAO.Models.models import UsersResultsModel
 
 result_get_args = reqparse.RequestParser()
 result_get_args.add_argument("id", type=int, required=True)
@@ -30,8 +26,7 @@ result_put_args.add_argument("attemptId", type=int)
 class ResultsList(Resource):
 
     def get(self):
-        results = session.query(UsersResultsModel).all()
-        session.close()
+        results = db_session.query(UsersResultsModel).all()
         return jsonify(list(x.dictionarize() for x in results))
 
     def post(self):
@@ -46,17 +41,15 @@ class ResultsList(Resource):
                                     risk_taking=risk_taking,
                                     attemptId=attemptId)
 
-        session.add(results)
-        session.commit()
-        session.close()
+        db_session.add(results)
+        db_session.commit()
         return {"status": "OK"}
 
 
 class Result(Resource):
 
     def get(self, id):
-        result = session.query(UsersResultsModel).filter_by(attemptId=id).one()
-        session.close()
+        result = db_session.query(UsersResultsModel).filter_by(attemptId=id).one()
         return jsonify(result.dictionarize())
 
     def put(self, id):
@@ -68,21 +61,19 @@ class Result(Resource):
 
         # new_role_id = request.args.get('role_id')
 
-        editedResult = session.query(UsersResultsModel).filter_by(id=id).one()
+        editedResult = db_session.query(UsersResultsModel).filter_by(id=id).one()
 
         editedResult.involvement = involvement
         editedResult.control = control
         editedResult.risk_taking = risk_taking
         editedResult.attemptId = attemptId
 
-        session.add(editedResult)
-        session.commit()
-        session.close()
+        db_session.add(editedResult)
+        db_session.commit()
         return "Result updated OK"
 
     def delete(self, id):
-        deletedResult = session.query(UsersResultsModel).filter_by(id=id).one()
-        session.delete(deletedResult)
-        session.commit()
-        session.close()
+        deletedResult = db_session.query(UsersResultsModel).filter_by(id=id).one()
+        db_session.delete(deletedResult)
+        db_session.commit()
         return "Result deleted OK"

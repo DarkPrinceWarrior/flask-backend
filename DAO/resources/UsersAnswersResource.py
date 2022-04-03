@@ -1,12 +1,8 @@
 from flask import jsonify
 from flask_restful import reqparse, Resource
-from sqlalchemy.orm import sessionmaker
 
-from DAO.Models.UsersAnswers_entity import UsersAnswersModel
-from DAO.database_setup import engine
-
-DBSession = sessionmaker(bind=engine)
-session = DBSession()
+from DAO.Models.database_setup import db_session
+from DAO.Models.models import UsersAnswersModel
 
 user_answer_get_args = reqparse.RequestParser()
 user_answer_get_args.add_argument("id", type=int, required=True)
@@ -27,8 +23,7 @@ user_answer_put_args.add_argument("attemptId", type=int)
 class UserAnswerList(Resource):
 
     def get(self):
-        user_answer = session.query(UsersAnswersModel).all()
-        session.close()
+        user_answer = db_session.query(UsersAnswersModel).all()
         return jsonify(list(x.dictionarize() for x in user_answer))
         # return jsonify({'Users': list(x.dictionarize() for x in users)})
 
@@ -42,33 +37,29 @@ class UserAnswerList(Resource):
 
         user_answer = UsersAnswersModel(choiceId=choiceId,
                                         attemptId=attemptId)
-        session.add(user_answer)
-        session.commit()
-        session.close()
+        db_session.add(user_answer)
+        db_session.commit()
         return {"status": "OK"}
 
 
 class UserAnswer(Resource):
 
     def get(self, id):
-        user_answer = session.query(UsersAnswersModel).filter_by(id=id).one()
-        session.close()
+        user_answer = db_session.query(UsersAnswersModel).filter_by(id=id).one()
         return jsonify(user_answer.dictionarize())
 
     def patch(self, new_choice):
         print("Patch"+str(new_choice))
         args = user_answer_put_args.parse_args()
-        editedAnswer = session.query(UsersAnswersModel).filter_by(attemptId=args["attemptId"],
+        editedAnswer = db_session.query(UsersAnswersModel).filter_by(attemptId=args["attemptId"],
                                                                   choiceId=args["choiceId"]).one()
         editedAnswer.choiceId = new_choice
-        session.add(editedAnswer)
-        session.commit()
-        session.close()
+        db_session.add(editedAnswer)
+        db_session.commit()
         return {"Status": "User answer was updated"}
 
     def delete(self, id):
-        deletedAnswer = session.query(UsersAnswersModel).filter_by(id=id).one()
-        session.delete(deletedAnswer)
-        session.commit()
-        session.close()
+        deletedAnswer = db_session.query(UsersAnswersModel).filter_by(id=id).one()
+        db_session.delete(deletedAnswer)
+        db_session.commit()
         return "User answer deleted OK"

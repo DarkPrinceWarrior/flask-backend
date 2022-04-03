@@ -1,15 +1,8 @@
-from datetime import datetime
-from sqlite3 import Date
-
-from flask import jsonify, request
+from flask import jsonify
 from flask_restful import Resource, reqparse
-from sqlalchemy.orm import sessionmaker
 
-from DAO.Models.UserAttempt_entity import UsersAttemptsModel
-from DAO.database_setup import engine
-
-DBSession = sessionmaker(bind=engine)
-session = DBSession()
+from DAO.Models.database_setup import db_session
+from DAO.Models.models import UsersAttemptsModel
 
 attempt_get_args = reqparse.RequestParser()
 attempt_get_args.add_argument("id", type=int, required=True)
@@ -33,8 +26,7 @@ class AttemptList(Resource):
 
     def get(self):
 
-        numberOfElements = session.query(UsersAttemptsModel).count()
-        session.close()
+        numberOfElements = db_session.query(UsersAttemptsModel).count()
 
         if numberOfElements == 0:
             return {
@@ -44,8 +36,7 @@ class AttemptList(Resource):
                 "passing_time": "0:0"
             }
         else:
-            attempt = session.query(UsersAttemptsModel).all()
-            session.close()
+            attempt = db_session.query(UsersAttemptsModel).all()
             return jsonify(list(x.dictionarize() for x in attempt))
 
 
@@ -59,9 +50,8 @@ class AttemptList(Resource):
         user_attempt = UsersAttemptsModel(attempt_number=attempt_number,
                                           userId=userId,
                                           passing_time=passing_time)
-        session.add(user_attempt)
-        session.commit()
-        session.close()
+        db_session.add(user_attempt)
+        db_session.commit()
         return {"Status": "OK"}
 
 
@@ -69,39 +59,34 @@ class Attempt(Resource):
 
     def get(self, user_id):
         index = self.get_attemptId(user_id)
-        user_attempts = session.query(UsersAttemptsModel).filter_by(id=index).one()
-        session.close()
+        user_attempts = db_session.query(UsersAttemptsModel).filter_by(id=index).one()
         return jsonify(list(x.dictionarize() for x in user_attempts))
 
     # Обновление записи
     def patch(self, user_id):
         args = attempt_put_args.parse_args()
         Id = self.get_attemptId(user_id)
-        editedAttempt = session.query(UsersAttemptsModel).filter_by(id=Id).one()
+        editedAttempt = db_session.query(UsersAttemptsModel).filter_by(id=Id).one()
         editedAttempt.attempt_number = editedAttempt.attempt_number
         editedAttempt.userId = editedAttempt.userId
         editedAttempt.passing_time = args["passing_time"]
-        session.add(editedAttempt)
-        session.commit()
-        session.close()
+        db_session.add(editedAttempt)
+        db_session.commit()
         return {"Status": "Attempt was updated"}
 
     def delete(self, user_id):
         index = self.get_attemptId(user_id)
-        deletedAttempt = session.query(UsersAttemptsModel).filter_by(id=index).one()
-        session.delete(deletedAttempt)
-        session.commit()
-        session.close()
+        deletedAttempt = db_session.query(UsersAttemptsModel).filter_by(id=index).one()
+        db_session.delete(deletedAttempt)
+        db_session.commit()
         return {"Status": "Attempt was deleted"}
 
     # Ищем id попытки по id юзера и его последней попытке
     def get_attemptId(self, user_id):
 
-        user_attempts = session.query(UsersAttemptsModel).count()
-        session.close()
+        user_attempts = db_session.query(UsersAttemptsModel).count()
         if user_attempts != 1:
-            user_attempts = session.query(UsersAttemptsModel).filter_by(userId=user_id).all()
-            session.close()
+            user_attempts = db_session.query(UsersAttemptsModel).filter_by(userId=user_id).all()
             attempt_list = list(x.dictionarize() for x in user_attempts)
             max_attempt = 0
             index = 0
@@ -111,6 +96,5 @@ class Attempt(Resource):
                     index = i["id"]
             return index
         else:
-            user_attempts = session.query(UsersAttemptsModel).filter_by(userId=user_id).one()
-            session.close()
+            user_attempts = db_session.query(UsersAttemptsModel).filter_by(userId=user_id).one()
             return user_attempts.id

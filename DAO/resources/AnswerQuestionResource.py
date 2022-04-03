@@ -1,15 +1,8 @@
-from datetime import datetime
+from flask_restful import Resource
 
-from flask_restful import Resource, reqparse
-
-from flask import jsonify, request
+from flask import jsonify
 from sqlalchemy.orm import sessionmaker
 
-from DAO.Models.AnswerQuestion_entity import AnswerQuestionModel
-from DAO.database_setup import engine
-
-DBSession = sessionmaker(bind=engine)
-session = DBSession()
 
 
 # aq_get_args = reqparse.RequestParser()
@@ -27,14 +20,14 @@ session = DBSession()
 # aq_put_args.add_argument("id", type=int)
 # aq_put_args.add_argument("attempt_number", type=int)
 # aq_put_args.add_argument("userId", type=int)
-
+from DAO.Models.database_setup import db_session
+from DAO.Models.models import AnswerQuestionModel
 
 
 class ChoiceList(Resource):
 
     def get(self):
-        questions = session.query(AnswerQuestionModel).all()
-        session.close()
+        questions = db_session.query(AnswerQuestionModel).all()
         return jsonify(list(x.dictionarize() for x in questions))
 
     # def post(self):
@@ -51,8 +44,7 @@ class ChoiceList(Resource):
 class Choice(Resource):
 
     def get(self, id):
-        question = session.query(AnswerQuestionModel).filter_by(id=id).one()
-        session.close()
+        question = db_session.query(AnswerQuestionModel).filter_by(id=id).one()
         return jsonify(question.dictionarize())
 
 

@@ -1,16 +1,9 @@
-from flask import jsonify, request
+from flask import jsonify
 from flask_restful import Resource, reqparse
-from sqlalchemy.orm import sessionmaker
-import time
-from DAO.Models.Role_entity import RoleModel
-from DAO.Models.User_entity import UserModel
-from DAO.database_setup import engine
-from firestore_connection import db
 from firebase_admin import auth
 
-DBSession = sessionmaker(bind=engine)
-session = DBSession()
-
+from DAO.Models.database_setup import db_session
+from DAO.Models.models import UserModel
 
 user_get_args = reqparse.RequestParser()
 user_get_args.add_argument("id", type=int, required=True)
@@ -36,8 +29,7 @@ user_put_args.add_argument("role_id", type=str)
 class UsersList(Resource):
 
     def get(self):
-        users = session.query(UserModel).all()
-        session.close()
+        users = db_session.query(UserModel).all()
         return jsonify(list(x.dictionarize() for x in users))
 
 
@@ -55,9 +47,8 @@ class UsersList(Resource):
                          gender=gender,
                          age=age,
                          role_id=role_id)
-        session.add(user)
-        session.commit()
-        session.close()
+        db_session.add(user)
+        db_session.commit()
         return {"status": "OK"}
 
 
@@ -65,8 +56,7 @@ class UsersList(Resource):
 class User(Resource):
 
     def get(self, email):
-        user = session.query(UserModel).filter_by(email=email).first()
-        session.close()
+        user = db_session.query(UserModel).filter_by(email=email).first()
         if user is None:
             return {"Status": "No user was found"}
         else:
@@ -80,16 +70,15 @@ class User(Resource):
         new_gender = args["gender"]
         new_age = args["age"]
         print(email,new_login,args["current_email"],new_gender,new_age)
-        editedUser = session.query(UserModel).filter_by(email=args["current_email"]).one()
+        editedUser = db_session.query(UserModel).filter_by(email=args["current_email"]).one()
         editedUser.id = editedUser.id
         editedUser.login = new_login
         editedUser.email = new_email.lower()
         editedUser.gender = new_gender
         editedUser.age = new_age
         editedUser.role_id = editedUser.role_id
-        session.add(editedUser)
-        session.commit()
-        session.close()
+        db_session.add(editedUser)
+        db_session.commit()
 
         serializerObject = {
             "email": new_email,
@@ -105,15 +94,13 @@ class User(Resource):
         try:
             auth.get_user_by_email(email)
         except:
-            user = session.query(UserModel).filter_by(email=email).first()
-            session.close()
+            user = db_session.query(UserModel).filter_by(email=email).first()
             if user is None:
                 return {"Status": "User wasn't created"}
             else:
-                deletedUser = session.query(UserModel).filter_by(email=email).one()
-                session.delete(deletedUser)
-                session.commit()
-                session.close()
+                deletedUser = db_session.query(UserModel).filter_by(email=email).one()
+                db_session.delete(deletedUser)
+                db_session.commit()
                 return {"Status": "User was deleted"}
 
 
